@@ -15,7 +15,7 @@ bot.command("start", async (ctx) => {
 bot.on("message", (ctx) => {
   let message = ctx.message.text as string;
   let result = typeset(message, defaultOption);
-//   对 result 进行处理
+//   Process your logic after this line / 在这行之后处理你的逻辑
 
 });
 

@@ -2,7 +2,7 @@ import { Option } from "./option";
 
 const defaultOption: Option = {
   insertIndent: true,
-  lineGap: 0,
+  lineGap: 1,
   deleteBlankLines: true,
   deleteSpaceInChineseCharacter: true,
   insertSpaceInChineseAndEnglish: true,
