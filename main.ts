@@ -1,4 +1,6 @@
 import { Bot } from "grammy";
+import { typeset } from "./utils/typeset";
+import { defaultOption } from "./model/default-option";
 
 const bot = new Bot(""); // <-- 把你的 bot token 放在 "" 之间
 
@@ -6,7 +8,14 @@ const bot = new Bot(""); // <-- 把你的 bot token 放在 "" 之间
 // 当用户向你的 bot 发送消息时，grammY 将调用已注册的监听器。
 
 // 处理 /start 命令。
-bot.command("start", (ctx) => ctx.reply("Welcome! Up and running."));
+bot.command("start", async (ctx) => {
+  ctx.reply("Welcome! Up and running.");
+  console.log("test.");
+  let message = ctx.message?.text as string;
+  console.log(message);
+  let after = typeset(message,defaultOption)
+  console.log(after);
+});
 // 处理其他的消息。
 bot.on("message", (ctx) => ctx.reply("Got another message!"));
 
