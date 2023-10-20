@@ -9,15 +9,15 @@ const bot = new Bot(""); // <-- 把你的 bot token 放在 "" 之间
 
 // 处理 /start 命令。
 bot.command("start", async (ctx) => {
-  ctx.reply("Welcome! Up and running.");
-  console.log("test.");
-  let message = ctx.message?.text as string;
-  console.log(message);
-  let after = typeset(message,defaultOption)
-  console.log(after);
+  ctx.reply("Start 命令没什么用处，请探索机器人的其他神秘用法。");
 });
 // 处理其他的消息。
-bot.on("message", (ctx) => ctx.reply("Got another message!"));
+bot.on("message", (ctx) => {
+  let message = ctx.message.text as string;
+  let result = typeset(message, defaultOption);
+//   对 result 进行处理
+
+});
 
 // 现在，你已经确定了将如何处理信息，可以开始运行你的 bot。
 // 这将连接到 Telegram 服务器并等待消息。
