@@ -1,4 +1,4 @@
-import { Bot } from "grammy";
+import { Bot, GrammyError, HttpError } from "grammy";
 import { typeset } from "./utils/typeset";
 import { defaultOption } from "./model/default-option";
 
@@ -15,8 +15,20 @@ bot.command("start", async (ctx) => {
 bot.on("message", (ctx) => {
   let message = ctx.message.text as string;
   let result = typeset(message, defaultOption);
-//   Process your logic after this line / 在这行之后处理你的逻辑
-
+  //   Process your logic after this line / 在这行之后处理你的逻辑
+  if (result.length > 4000) {
+    let hunk = result.length / 4000 + 1;
+    let start = 0;
+    let end = 4000;
+    for (let i = 0; i < hunk; i++) {
+      start = start * (i + 1);
+      end = end * (i + 1);
+      const segment = result.substring(start, end);
+      ctx.api.sendMessage(-1001782968835, segment);
+    }
+  } else {
+    ctx.api.sendMessage(-1001782968835, result);
+  }
 });
 
 // 现在，你已经确定了将如何处理信息，可以开始运行你的 bot。
@@ -24,3 +36,15 @@ bot.on("message", (ctx) => {
 
 // 启动 bot。
 bot.start();
+bot.catch((err) => {
+  const ctx = err.ctx;
+  console.error(`Error while handling update ${ctx.update.update_id}:`);
+  const e = err.error;
+  if (e instanceof GrammyError) {
+    console.error("Error in request:", e.description);
+  } else if (e instanceof HttpError) {
+    console.error("Could not contact Telegram:", e);
+  } else {
+    console.error("Unknown error:", e);
+  }
+});
