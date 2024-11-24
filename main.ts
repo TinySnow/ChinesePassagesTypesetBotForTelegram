@@ -16,21 +16,8 @@ bot.on("message", (ctx) => {
   let message = ctx.message.text as string;
   let result = typeset(message, defaultOption);
   //   Process your logic after this line / 在这行之后处理你的逻辑
-  if (result.length > 4000) {
-    let hunk = result.length / 4000 + 1;
-    let start = 0;
-    let end = 4000;
-    for (let i = 0; i < hunk; i++) {
-      start = start * (i + 1);
-      end = end * (i + 1);
-      const segment = result.substring(start, end);
-      ctx.api.sendMessage(-1001782968835, segment);
-    }
-  } else {
-    ctx.api.sendMessage(-1001782968835, result);
-  }
-});
 
+});
 // 现在，你已经确定了将如何处理信息，可以开始运行你的 bot。
 // 这将连接到 Telegram 服务器并等待消息。
 
