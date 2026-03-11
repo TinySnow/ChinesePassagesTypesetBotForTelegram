@@ -1,105 +1,69 @@
 import { Bot, GrammyError, HttpError, type Context } from "grammy";
-import {
-  chatKey,
-  createTelegramChatCfgStore,
-  createTelegramHandler,
-  type BotMode,
-  type TelegramMeta,
-} from "typeseter/src/bot";
+import { typesetForTelegram } from "typeseter/src/bot";
 
 const token = "";
-
-const defaultMode: BotMode = "plain";
+const targetChatId = -1001782968835;
+const chunkLimit = 3820;
 
 const bot = new Bot(token);
 
-const store = createTelegramChatCfgStore({
-  maxEntries: 5000,
-  ttlMs: 30 * 24 * 60 * 60 * 1000,
-});
-
-// 统一封装“排版后发送”，内部已处理超长文本自动分片。
-const handleTypeset = createTelegramHandler(async (meta, text) => {
-  if (meta?.chatId == null) {
-    return;
+// 按固定长度分片，避免超长消息发送失败。
+function splitByLimit(text: string, limit: number): string[] {
+  if (text.length <= limit) {
+    return [text];
   }
-  await bot.api.sendMessage(meta.chatId, text);
-});
 
-// 将 grammy 上下文转换为 Typeseter 所需的消息元数据。
-function toMeta(ctx: Context): TelegramMeta {
-  return {
-    chatId: ctx.chat?.id,
-    userId: ctx.from?.id,
-    messageId: ctx.msg?.message_id,
-  };
+  const chunks: string[] = [];
+  let start = 0;
+
+  while (start < text.length) {
+    const end = Math.min(start + limit, text.length);
+    chunks.push(text.substring(start, end));
+    start = end;
+  }
+
+  return chunks;
 }
 
-// 保存当前会话模式（plain / markdown），用于后续消息复用。
-function setMode(meta: TelegramMeta, mode: BotMode): void {
-  const key = chatKey(meta);
-  if (!key) {
-    return;
-  }
+// HTML 模式发送前转义文本，避免内容中的符号破坏标签结构。
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
-  const current = store.get(key);
-  store.set(key, {
-    mode,
-    preview: current?.preview ?? false,
-    opt: current?.opt,
-    updatedAt: Date.now(),
-  });
+// 将排版结果分片并包裹可折叠引用后，逐条转发到目标群组。
+async function forwardTypesetResult(ctx: Context, result: string): Promise<void> {
+  const segments = splitByLimit(result, chunkLimit);
+
+  for (const segment of segments) {
+    const message = `<blockquote expandable>${escapeHtml(segment)}</blockquote>`;
+    await ctx.api
+      .sendMessage(targetChatId, message, { parse_mode: "HTML" })
+      .catch((sendErr) => {
+        console.error("发送消息出错:", sendErr);
+      });
+  }
 }
 
 bot.command("start", async (ctx) => {
-  await ctx.reply(
-    [
-      "中文排版机器人已启动。",
-      "发送任意文本会自动排版并回发。",
-      "命令：/plain 切换纯文本，/markdown 切换 Markdown。",
-    ].join("\n")
-  );
+  await ctx.reply("已启动：收到文本后会排版并转发到目标群组。");
 });
 
-bot.command("plain", async (ctx) => {
-  setMode(toMeta(ctx), "plain");
-  await ctx.reply("已切换为 plain 模式。");
-});
-
-bot.command("markdown", async (ctx) => {
-  setMode(toMeta(ctx), "markdown");
-  await ctx.reply("已切换为 markdown 模式。");
-});
-
-// 文本消息主流程：读取会话配置 -> 排版 -> 回发 -> 更新会话状态。
+// 处理文本消息：排版 -> 分片 -> 折叠引用转发。
 bot.on("message:text", async (ctx) => {
-  const text = ctx.message.text.trim();
+  const source = ctx.message.text;
+  const res = typesetForTelegram({ text: source, mode: "plain" });
 
-  // 避免将命令本身再做一次排版回发。
-  if (!text || text.startsWith("/")) {
+  if (!res.ok) {
+    console.error("排版失败:", res.error);
     return;
   }
 
-  const meta = toMeta(ctx);
-  const key = chatKey(meta);
-  const cfg = key ? store.get(key) : undefined;
-
-  const res = await handleTypeset({
-    text,
-    mode: cfg?.mode ?? defaultMode,
-    preview: cfg?.preview ?? false,
-    opt: cfg?.opt,
-    meta,
-  });
-
-  if (key) {
-    store.set(key, {
-      mode: res.usedMode,
-      preview: false,
-      opt: res.ok ? res.usedOpt : cfg?.opt,
-      updatedAt: Date.now(),
-    });
-  }
+  await forwardTypesetResult(ctx, res.output);
 });
 
 bot.start();
