@@ -1,29 +1,15 @@
 import { Bot, GrammyError, HttpError, type Context } from "grammy";
-import { typesetForTelegram } from "typeseter/src/bot";
+import {
+  normalizeChunkLen,
+  splitTelegramText,
+  typesetForTelegram,
+} from "typeseter/src/bot";
 
 const token = "";
 const targetChatId = -1001782968835;
-const chunkLimit = 3820;
+const chunkLimit = normalizeChunkLen(3820);
 
 const bot = new Bot(token);
-
-// 按固定长度分片，避免超长消息发送失败。
-function splitByLimit(text: string, limit: number): string[] {
-  if (text.length <= limit) {
-    return [text];
-  }
-
-  const chunks: string[] = [];
-  let start = 0;
-
-  while (start < text.length) {
-    const end = Math.min(start + limit, text.length);
-    chunks.push(text.substring(start, end));
-    start = end;
-  }
-
-  return chunks;
-}
 
 // HTML 模式发送前转义文本，避免内容中的符号破坏标签结构。
 function escapeHtml(text: string): string {
@@ -37,7 +23,7 @@ function escapeHtml(text: string): string {
 
 // 将排版结果分片并包裹可折叠引用后，逐条转发到目标群组。
 async function forwardTypesetResult(ctx: Context, result: string): Promise<void> {
-  const segments = splitByLimit(result, chunkLimit);
+  const segments = splitTelegramText(result, chunkLimit);
 
   for (const segment of segments) {
     const message = `<blockquote expandable>${escapeHtml(segment)}</blockquote>`;
