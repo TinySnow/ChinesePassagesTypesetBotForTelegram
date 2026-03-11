@@ -1,8 +1,14 @@
 {
-	"devDependencies": {
-		"typescript": "^5.2.2"
-	},
-	"dependencies": {
-		"grammy": "^1.19.2"
-	}
+  "scripts": {
+    "start": "tsx main.ts",
+    "dev": "tsx watch main.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "grammy": "^1.19.2",
+    "typeseter": "github:TinySnow/Typeseter#master"
+  }
 }
