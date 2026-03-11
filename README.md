@@ -1,4 +1,4 @@
-# ChinesePassagesTypesetBotForTelegram
+# telegram-typeseter-bot
 
 基于 `grammy` 的 Telegram 机器人，排版能力由 `Typeseter` 提供。
 

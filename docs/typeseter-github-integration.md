@@ -50,8 +50,6 @@
 PowerShell 示例：
 
 ```powershell
-$env:BOT_TOKEN="<your-telegram-bot-token>"
-$env:DEFAULT_MODE="plain"   # 可选：plain / markdown
 npm install
 npm run start
 ```
