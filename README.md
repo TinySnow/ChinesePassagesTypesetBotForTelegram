@@ -24,6 +24,19 @@ npm install
 npm run start
 ```
 
+## 生产环境部署
+
+1. 构建：
+
+```bash
+npm run build
+```
+
+2. 运行：
+```bash
+node dist/main.js
+```
+
 ## Branch 约定
 
 - `master`：对外公开，建议依赖稳定 commit/tag。
