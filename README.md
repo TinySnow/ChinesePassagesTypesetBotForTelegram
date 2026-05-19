@@ -26,7 +26,11 @@ npm run start
 
 ## 生产环境部署
 
-1. 构建：
+### 自编译
+
+1. 更改 .env 文件里面的 BOT_TOKEN
+
+2. 构建：
 
 ```bash
 npm run build
@@ -37,7 +41,12 @@ npm run build
 node dist/main.js
 ```
 
-- 生产环境的部署方式能减少内存占用到原来的 1/3
+- 自编译的部署方式能减少内存占用到原来的 1/3
+
+### Docker
+
+1. 更改 .env 文件里面的 BOT_TOKEN
+2. `docker compose up -d --build`
 
 ## Branch 约定
 

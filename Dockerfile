@@ -10,6 +10,5 @@ RUN npm install
 
 COPY . .
 
-CMD ["npm", "run", "build"]
-
-CMD ["npm", "dist/main.js"]
+# 容器启动时只需要跑服务
+CMD ["npx", "tsx", "main.ts"]
