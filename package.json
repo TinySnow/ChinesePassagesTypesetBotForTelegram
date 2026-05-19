@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "grammy": "^1.19.2",
+    "socks-proxy-agent": "^10.0.0",
     "typeseter": "github:TinySnow/Typeseter#master"
   }
 }

@@ -1,0 +1,11 @@
+
+services:
+  telegram-typeseter-bot:
+    build: .
+    container_name: telegram-typeseter-bot
+
+    env_file:
+      - .env
+
+    restart: unless-stopped
+    network_mode: host

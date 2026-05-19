@@ -4,12 +4,25 @@ import {
   splitTelegramText,
   typesetForTelegram,
 } from "typeseter/src/bot";
+import { SocksProxyAgent } from "socks-proxy-agent";
 
-const token = "";
+const token = process.env.BOT_TOKEN;
+
+if (!token) {
+      throw new Error("BOT_TOKEN is not set");
+}
+
+// 使用 socks 代理协议发送消息，不然部署在国内网络不通
+const bot = new Bot(token, {
+  client: {
+    baseFetchConfig: {
+      agent: new SocksProxyAgent("socks5h://127.0.0.1:7890"),
+    },
+  },
+});
+
 const targetChatId = -1001782968835;
 const chunkLimit = normalizeChunkLen(3820);
-
-const bot = new Bot(token);
 
 // HTML 模式发送前转义文本，避免内容中的符号破坏标签结构。
 function escapeHtml(text: string): string {
