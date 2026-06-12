@@ -12,10 +12,14 @@
 
 ## 命令列表
 
-- `/settings` — 查看当前所有排版选项
+- `/settings` — 查看当前所有排版选项（含 key 名和段落间距）
 - `/mode <plain|markdown>` — 切换排版模式
-- `/toggle <选项名>` — 开关某个选项（支持中文标签或 key 名）
+- `/toggle <选项名或 key>` — 开关某个选项（支持中文标签或 key 名，无需 on/off）
+- `/gap <0|1|2|分隔符>` — 设置段落间距
 - `/preset <poetry|default|strict>` — 应用预设配置
+  - `poetry`：维持空行 + 首行不缩进 + md 缩减连续空行
+  - `strict`：全选项开启
+  - `default`：恢复默认
 - `/reset` — 恢复默认设置
 - 直接发送文本即可排版
 
@@ -56,6 +60,8 @@ node dist/main.js
 
 1. 更改 `.env` 文件
 2. `docker compose up -d --build`
+
+配置通过 `docker-compose.yml` 中的 volume 挂载 `config.json` 持久化，容器重建不丢失。
 
 ## 环境变量
 
