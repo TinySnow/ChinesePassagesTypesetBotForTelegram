@@ -1,11 +1,18 @@
-
+# =============================================================================
+# Telegram 排版机器人 (Telegram Typeseter Bot)
+# 用途: 接收消息,使用 Typeseter 库进行 CJK 文本排版,返回排版后内容
+# 网络: 使用 host 模式 (宿主机网络),以使用宿主机的 SOCKS5 代理 (127.0.0.1:7890)
+# 注意: 部署在中国大陆服务器,需要通过代理访问 Telegram API
+# =============================================================================
 services:
   telegram-typeseter-bot:
     build: .
     container_name: telegram-typeseter-bot
 
     env_file:
-      - .env
+      - .env                                                      # 包含 BOT_TOKEN (不要提交到 Git)
 
     restart: unless-stopped
-    network_mode: host
+    network_mode: host                                            # 使用宿主机网络: 需要访问宿主机的 SOCKS5 代理 (127.0.0.1:7890)
+    volumes:
+      - ./config.json:/app/config.json                            # 持久化排版配置，重启不丢

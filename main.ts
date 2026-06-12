@@ -1,4 +1,5 @@
 import { Bot, GrammyError, HttpError, type Context } from "grammy";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import {
   normalizeChunkLen,
   splitTelegramText,
@@ -27,6 +28,7 @@ const bot = new Bot(token, {
 const targetChatId = -1001782968835;
 const chunkLimit = normalizeChunkLen(3820);
 const cfgStore = createTelegramChatCfgStore();
+const CONFIG_FILE = "config.json";
 
 // ---------- 选项映射表 ----------
 
@@ -70,6 +72,8 @@ const KEY_LABELS: Record<keyof Option, string> = {
   fixOthers: "其他修正总开关",
   insertSpaceAfterPercentSign: "百分号后加空格",
   noIndentFirstLine: "首行不缩进（如标题）",
+  insertBlankAfterTitle: "标题后插入空行",
+  insertBlankAfterAuthor: "作者后插入空行",
   mdIndentParagraphs: "md 段首缩进",
   mdStyleSpacing: "md 样式两侧加空格",
   mdAutoBlankLines: "md 段落自动空行",
@@ -111,6 +115,8 @@ const KEY_GROUPS: Record<keyof Option, GroupLabel> = {
   fixOthers: "other",
   insertSpaceAfterPercentSign: "other",
   noIndentFirstLine: "other",
+  insertBlankAfterTitle: "other",
+  insertBlankAfterAuthor: "other",
   mdIndentParagraphs: "md",
   mdStyleSpacing: "md",
   mdAutoBlankLines: "md",
@@ -146,6 +152,36 @@ function resolveKey(input: string): BoolKey | null {
 
 // ---------- 配置存取 ----------
 
+const configFileMap = new Map<string, TelegramChatCfg>();
+
+function loadConfigFromFile() {
+  try {
+    if (!existsSync(CONFIG_FILE)) return;
+    const raw = readFileSync(CONFIG_FILE, "utf-8");
+    const data = JSON.parse(raw);
+    if (data && typeof data === "object") {
+      for (const [key, val] of Object.entries(data)) {
+        if (val && typeof val === "object") {
+          configFileMap.set(key, val as TelegramChatCfg);
+          cfgStore.set(key, val as TelegramChatCfg);
+        }
+      }
+    }
+  } catch { /* 文件损坏则跳过 */ }
+}
+
+function flushConfigToFile() {
+  try {
+    const obj: Record<string, TelegramChatCfg> = {};
+    for (const [k, v] of configFileMap) {
+      obj[k] = v;
+    }
+    writeFileSync(CONFIG_FILE, JSON.stringify(obj), "utf-8");
+  } catch { /* 写入失败静默跳过 */ }
+}
+
+loadConfigFromFile();
+
 function getCfg(ctx: Context): TelegramChatCfg {
   const key = chatKey({ chatId: ctx.chat?.id });
   if (!key) return { opt: { ...defaultSettings }, updatedAt: Date.now() };
@@ -155,7 +191,10 @@ function getCfg(ctx: Context): TelegramChatCfg {
 function saveCfg(ctx: Context, cfg: TelegramChatCfg): void {
   const key = chatKey({ chatId: ctx.chat?.id });
   if (!key) return;
-  cfgStore.set(key, { ...cfg, updatedAt: Date.now() });
+  const next = { ...cfg, updatedAt: Date.now() };
+  cfgStore.set(key, next);
+  configFileMap.set(key, next);
+  flushConfigToFile();
 }
 
 function cfgOpt(cfg: TelegramChatCfg): Option {
@@ -191,6 +230,13 @@ function formatSettings(cfg: TelegramChatCfg): string {
     }
   }
 
+  const gapLabel = opt.lineGap === -1
+    ? `自定义："${opt.customedLineBreaker}"`
+    : `${opt.lineGap} 行`;
+  lines.push("");
+  lines.push(`—— 段落间距 ——`);
+  lines.push(`段落间空行：${gapLabel}  (lineGap)`);
+
   return lines.join("\n");
 }
 
@@ -209,8 +255,10 @@ async function forwardTypesetResult(ctx: Context, result: string): Promise<void>
   const segments = splitTelegramText(result, chunkLimit);
   for (const segment of segments) {
     const message = `<blockquote expandable>${escapeHtml(segment)}</blockquote>`;
+    const chatId = targetChatId ?? ctx.chat?.id;
+    if (chatId == null) continue;
     await ctx.api
-      .sendMessage(targetChatId, message, { parse_mode: "HTML" })
+      .sendMessage(chatId, message, { parse_mode: "HTML" })
       .catch((sendErr) => {
         console.error("发送消息出错:", sendErr);
       });
@@ -226,6 +274,7 @@ bot.command("start", async (ctx) => {
       "/settings - 查看当前设置（含 key 名）\n" +
       "/mode <plain|markdown> - 切换模式\n" +
       "/toggle <选项名或 key> - 开关某个选项（不需要 on/off）\n" +
+      "/gap <0|1|2|分隔符> - 设置段落间距\n" +
       "/preset <poetry|default|strict> - 预设配置\n" +
       "/reset - 恢复默认设置\n\n" +
       "直接发送文本即可排版。"
@@ -294,6 +343,36 @@ bot.command("toggle", async (ctx) => {
   const label = KEY_LABELS[key];
   const newVal = opt[key] ? "开启" : "关闭";
   await ctx.reply(`${label}：${newVal}`);
+});
+
+bot.command("gap", async (ctx) => {
+  const arg = ctx.match.trim();
+  const cfg = getCfg(ctx);
+  const opt = cfgOpt(cfg);
+
+  if (arg === "") {
+    const cur = opt.lineGap === -1
+      ? `自定义："${opt.customedLineBreaker}"`
+      : `${opt.lineGap} 行`;
+    await ctx.reply(`当前段落间距：${cur}\n用法：/gap 0 | /gap 1 | /gap 2 | /gap 自定义分隔符内容`);
+    return;
+  }
+
+  const num = Number(arg);
+  if (arg === "0" || arg === "1" || arg === "2") {
+    opt.lineGap = num;
+    opt.customedLineBreaker = "";
+  } else {
+    opt.lineGap = -1;
+    opt.customedLineBreaker = arg;
+  }
+
+  cfg.opt = opt;
+  saveCfg(ctx, cfg);
+  const label = opt.lineGap === -1
+    ? `自定义分隔符："${opt.customedLineBreaker}"`
+    : `${opt.lineGap} 行`;
+  await ctx.reply(`段落间距已设为：${label}`);
 });
 
 bot.command("reset", async (ctx) => {
