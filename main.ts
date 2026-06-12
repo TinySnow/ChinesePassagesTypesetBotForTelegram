@@ -256,18 +256,26 @@ bot.command("mode", async (ctx) => {
 bot.command("toggle", async (ctx) => {
   const raw = ctx.match.trim();
   if (!raw) {
-    await ctx.reply("用法：/toggle <选项名>\n使用 /settings 查看所有可用选项名。");
+    await ctx.reply("用法：/toggle <选项名> [on|off]\n支持 key 名或中文标签，例如 /toggle md 段首缩进\n使用 /settings 查看所有可用选项。");
     return;
   }
 
-  const parts = raw.split(/\s+/);
-  const input = parts[0];
-  const force = parts[1]?.toLowerCase();
+  let input = raw;
+  let force: string | undefined;
+
+  const lastSpace = raw.lastIndexOf(" ");
+  if (lastSpace > 0) {
+    const tail = raw.slice(lastSpace + 1).toLowerCase();
+    if (tail === "on" || tail === "off") {
+      input = raw.slice(0, lastSpace).trim();
+      force = tail;
+    }
+  }
 
   const key = resolveKey(input);
 
   if (!key) {
-    await ctx.reply(`未知选项："${input}"。\n请使用选项名或中文标签，例如 /toggle preserveBlankLines\n使用 /settings 查看所有可用选项。`);
+    await ctx.reply(`未知选项："${input}"。\n请使用选项 key 或中文标签。\n使用 /settings 查看所有可用选项。`);
     return;
   }
 
