@@ -195,6 +195,13 @@ function formatSettings(cfg: TelegramChatCfg): string {
     }
   }
 
+  const gapLabel = opt.lineGap === -1
+    ? `自定义："${opt.customedLineBreaker}"`
+    : `${opt.lineGap} 行`;
+  lines.push("");
+  lines.push(`—— 段落间距 ——`);
+  lines.push(`段落间空行：${gapLabel}  (lineGap)`);
+
   return lines.join("\n");
 }
 
@@ -230,6 +237,7 @@ bot.command("start", async (ctx) => {
       "/settings - 查看当前设置（含 key 名）\n" +
       "/mode <plain|markdown> - 切换模式\n" +
       "/toggle <选项名或 key> - 开关某个选项（不需要 on/off）\n" +
+      "/gap <0|1|2|分隔符> - 设置段落间距\n" +
       "/preset <poetry|default|strict> - 预设配置\n" +
       "/reset - 恢复默认设置\n\n" +
       "直接发送文本即可排版。"
@@ -298,6 +306,36 @@ bot.command("toggle", async (ctx) => {
   const label = KEY_LABELS[key];
   const newVal = opt[key] ? "开启" : "关闭";
   await ctx.reply(`${label}：${newVal}`);
+});
+
+bot.command("gap", async (ctx) => {
+  const arg = ctx.match.trim();
+  const cfg = getCfg(ctx);
+  const opt = cfgOpt(cfg);
+
+  if (arg === "") {
+    const cur = opt.lineGap === -1
+      ? `自定义："${opt.customedLineBreaker}"`
+      : `${opt.lineGap} 行`;
+    await ctx.reply(`当前段落间距：${cur}\n用法：/gap 0 | /gap 1 | /gap 2 | /gap 自定义分隔符内容`);
+    return;
+  }
+
+  const num = Number(arg);
+  if (arg === "0" || arg === "1" || arg === "2") {
+    opt.lineGap = num;
+    opt.customedLineBreaker = "";
+  } else {
+    opt.lineGap = -1;
+    opt.customedLineBreaker = arg;
+  }
+
+  cfg.opt = opt;
+  saveCfg(ctx, cfg);
+  const label = opt.lineGap === -1
+    ? `自定义分隔符："${opt.customedLineBreaker}"`
+    : `${opt.lineGap} 行`;
+  await ctx.reply(`段落间距已设为：${label}`);
 });
 
 bot.command("reset", async (ctx) => {
