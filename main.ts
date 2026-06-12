@@ -1,4 +1,5 @@
 import { Bot, GrammyError, HttpError, type Context } from "grammy";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import {
   normalizeChunkLen,
   splitTelegramText,
@@ -27,6 +28,7 @@ const bot = new Bot(token, {
 const targetChatId = -1001782968835;
 const chunkLimit = normalizeChunkLen(3820);
 const cfgStore = createTelegramChatCfgStore();
+const CONFIG_FILE = "config.json";
 
 // ---------- 选项映射表 ----------
 
@@ -150,6 +152,36 @@ function resolveKey(input: string): BoolKey | null {
 
 // ---------- 配置存取 ----------
 
+const configFileMap = new Map<string, TelegramChatCfg>();
+
+function loadConfigFromFile() {
+  try {
+    if (!existsSync(CONFIG_FILE)) return;
+    const raw = readFileSync(CONFIG_FILE, "utf-8");
+    const data = JSON.parse(raw);
+    if (data && typeof data === "object") {
+      for (const [key, val] of Object.entries(data)) {
+        if (val && typeof val === "object") {
+          configFileMap.set(key, val as TelegramChatCfg);
+          cfgStore.set(key, val as TelegramChatCfg);
+        }
+      }
+    }
+  } catch { /* 文件损坏则跳过 */ }
+}
+
+function flushConfigToFile() {
+  try {
+    const obj: Record<string, TelegramChatCfg> = {};
+    for (const [k, v] of configFileMap) {
+      obj[k] = v;
+    }
+    writeFileSync(CONFIG_FILE, JSON.stringify(obj), "utf-8");
+  } catch { /* 写入失败静默跳过 */ }
+}
+
+loadConfigFromFile();
+
 function getCfg(ctx: Context): TelegramChatCfg {
   const key = chatKey({ chatId: ctx.chat?.id });
   if (!key) return { opt: { ...defaultSettings }, updatedAt: Date.now() };
@@ -159,7 +191,10 @@ function getCfg(ctx: Context): TelegramChatCfg {
 function saveCfg(ctx: Context, cfg: TelegramChatCfg): void {
   const key = chatKey({ chatId: ctx.chat?.id });
   if (!key) return;
-  cfgStore.set(key, { ...cfg, updatedAt: Date.now() });
+  const next = { ...cfg, updatedAt: Date.now() };
+  cfgStore.set(key, next);
+  configFileMap.set(key, next);
+  flushConfigToFile();
 }
 
 function cfgOpt(cfg: TelegramChatCfg): Option {
