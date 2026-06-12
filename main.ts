@@ -230,7 +230,6 @@ async function forwardTypesetResult(ctx: Context, result: string): Promise<void>
       });
   }
 }
-}
 
 // ---------- 命令处理 ----------
 
