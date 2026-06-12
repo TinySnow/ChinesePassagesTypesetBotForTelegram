@@ -252,10 +252,9 @@ function escapeHtml(text: string): string {
 }
 
 async function forwardTypesetResult(ctx: Context, result: string): Promise<void> {
-  const html = escapeHtml(result).replace(/\n\n/g, "\n<br>\n");
-  const segments = splitTelegramText(html, chunkLimit);
+  const segments = splitTelegramText(result, chunkLimit);
   for (const segment of segments) {
-    const message = `<blockquote expandable>${segment}</blockquote>`;
+    const message = `<blockquote expandable>${escapeHtml(segment)}</blockquote>`;
     const chatId = targetChatId ?? ctx.chat?.id;
     if (chatId == null) continue;
     await ctx.api
