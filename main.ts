@@ -217,15 +217,19 @@ function escapeHtml(text: string): string {
 }
 
 async function forwardTypesetResult(ctx: Context, result: string): Promise<void> {
-  const segments = splitTelegramText(result, chunkLimit);
+  const html = escapeHtml(result).replace(/\n\n/g, "\n<br>\n");
+  const segments = splitTelegramText(html, chunkLimit);
   for (const segment of segments) {
-    const message = `<blockquote expandable>${escapeHtml(segment)}</blockquote>`;
+    const message = `<blockquote expandable>${segment}</blockquote>`;
+    const chatId = targetChatId ?? ctx.chat?.id;
+    if (chatId == null) continue;
     await ctx.api
-      .sendMessage(targetChatId, message, { parse_mode: "HTML" })
+      .sendMessage(chatId, message, { parse_mode: "HTML" })
       .catch((sendErr) => {
         console.error("发送消息出错:", sendErr);
       });
   }
+}
 }
 
 // ---------- 命令处理 ----------
