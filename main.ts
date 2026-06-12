@@ -132,6 +132,18 @@ function isBoolKey(key: string): key is BoolKey {
   return key in KEY_LABELS;
 }
 
+const LABEL_TO_KEY: Record<string, BoolKey> = {};
+for (const k of Object.keys(KEY_LABELS)) {
+  if (isBoolKey(k)) {
+    LABEL_TO_KEY[KEY_LABELS[k]] = k;
+  }
+}
+
+function resolveKey(input: string): BoolKey | null {
+  if (isBoolKey(input)) return input;
+  return LABEL_TO_KEY[input] ?? null;
+}
+
 // ---------- 配置存取 ----------
 
 function getCfg(ctx: Context): TelegramChatCfg {
@@ -249,11 +261,13 @@ bot.command("toggle", async (ctx) => {
   }
 
   const parts = raw.split(/\s+/);
-  const key = parts[0];
+  const input = parts[0];
   const force = parts[1]?.toLowerCase();
 
-  if (!isBoolKey(key)) {
-    await ctx.reply(`未知选项："${key}"。\n使用 /settings 查看所有可用选项。`);
+  const key = resolveKey(input);
+
+  if (!key) {
+    await ctx.reply(`未知选项："${input}"。\n请使用选项名或中文标签，例如 /toggle preserveBlankLines\n使用 /settings 查看所有可用选项。`);
     return;
   }
 
