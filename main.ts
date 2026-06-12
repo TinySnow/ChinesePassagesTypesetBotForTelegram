@@ -187,7 +187,7 @@ function formatSettings(cfg: TelegramChatCfg): string {
       const label = KEY_LABELS[key];
       const val = opt[key];
       const icon = typeof val === "boolean" ? statusIcon(val) : String(val);
-      lines.push(`${icon}  ${label}`);
+      lines.push(`${icon}  ${label}  (${key})`);
     }
   }
 
@@ -223,9 +223,9 @@ bot.command("start", async (ctx) => {
   await ctx.reply(
     "排版机器人已启动。\n\n" +
       "命令列表：\n" +
-      "/settings - 查看当前设置\n" +
+      "/settings - 查看当前设置（含 key 名）\n" +
       "/mode <plain|markdown> - 切换模式\n" +
-      "/toggle <选项名> - 开关某个选项\n" +
+      "/toggle <选项名或 key> - 开关某个选项（不需要 on/off）\n" +
       "/preset <poetry|default|strict> - 预设配置\n" +
       "/reset - 恢复默认设置\n\n" +
       "直接发送文本即可排版。"
@@ -256,7 +256,7 @@ bot.command("mode", async (ctx) => {
 bot.command("toggle", async (ctx) => {
   const raw = ctx.match.trim();
   if (!raw) {
-    await ctx.reply("用法：/toggle <选项名> [on|off]\n支持 key 名或中文标签，例如 /toggle md 段首缩进\n使用 /settings 查看所有可用选项。");
+    await ctx.reply("用法：/toggle <选项名>\n无需 on/off，直接反值切换。支持中文标签或 key 名。\n使用 /settings 查看所有可用选项。");
     return;
   }
 
@@ -275,7 +275,7 @@ bot.command("toggle", async (ctx) => {
   const key = resolveKey(input);
 
   if (!key) {
-    await ctx.reply(`未知选项："${input}"。\n请使用选项 key 或中文标签。\n使用 /settings 查看所有可用选项。`);
+    await ctx.reply(`未知选项："${input}"。\n请使用 key 名或中文标签。\n使用 /settings 查看所有可用选项及 key 名。`);
     return;
   }
 
